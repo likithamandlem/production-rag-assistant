@@ -16,6 +16,7 @@ AI retrieval, reranking, and LLM generation.
 - 🗑️ **Document Management** — upload and delete documents
 - 🔭 **LangSmith Tracing** — full LLM observability
 - 🐳 **Dockerized** — production-ready deployment
+- 🔄 **Query Rewriting** — automatically expands short queries for better retrieval
 
 ---
 
@@ -172,12 +173,12 @@ Topic 3 (Source 3)
 
 | Step | Detail |
 |---|---|
-| Retrieval | Top 20 chunks from Pinecone |
+| Query Rewriting | LLM rewrites short queries into detailed retrieval-optimized queries |
+| Retrieval | Top 20 chunks from Pinecone using BAAI embeddings |
 | Reranking | Cross-encoder scores all 20, returns best 5 |
 | Context | Best 5 chunks sent to LLM |
 | Generation | Llama 3.3 70B generates grounded answer |
 | Citations | Every answer references source chunks |
-
 ---
 
 # 🧩 Challenges Faced
