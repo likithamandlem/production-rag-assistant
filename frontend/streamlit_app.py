@@ -55,9 +55,10 @@ with st.sidebar:
     st.markdown("1. PDF → Text Extraction")
     st.markdown("2. Text → BAAI Embeddings")
     st.markdown("3. Embeddings → Pinecone")
-    st.markdown("4. Query → Retrieve Top 20")
-    st.markdown("5. Rerank → Top 5")
-    st.markdown("6. LLM → Answer + Citations")
+    st.markdown("4. Query Rewriting")
+    st.markdown("5. Retrieve Top 20")
+    st.markdown("6. Rerank → Top 5")
+    st.markdown("7. LLM → Answer + Citations")
 
 # Main area
 if not st.session_state.doc_id:
@@ -67,7 +68,7 @@ if not st.session_state.doc_id:
     - Upload any PDF document
     - Ask questions in natural language
     - Get answers with source citations
-    - Powered by Pinecone + Groq + Reranking
+    - Powered by Pinecone + Groq + Reranking + Query Rewriting
     """)
 else:
     # Chat history display
@@ -95,7 +96,7 @@ else:
         })
 
         with st.chat_message("assistant"):
-            with st.spinner("Retrieving → Reranking → Generating..."):
+            with st.spinner("Rewriting query → Retrieving → Reranking → Generating..."):
                 response = requests.post(
                     f"{API_BASE}/chat",
                     json={
@@ -110,10 +111,13 @@ else:
                 )
 
                 if response.status_code == 200:
-                    data    = response.json()
-                    answer  = data["answer"]
-                    sources = data["sources"]
+                    data            = response.json()
+                    answer          = data["answer"]
+                    sources         = data["sources"]
+                    rewritten_query = data["rewritten_query"]
 
+                    # Show rewritten query
+                    st.caption(f"🔄 Query rewritten to: *{rewritten_query}*")
                     st.write(answer)
 
                     with st.expander("📚 Sources"):

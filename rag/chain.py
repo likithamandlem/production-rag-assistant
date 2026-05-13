@@ -6,6 +6,50 @@ from app.config import GROQ_API_KEY, LLM_MODEL, TEMPERATURE
 
 client = Groq(api_key=GROQ_API_KEY)
 
+def rewrite_query(question: str, chat_history: list[dict] = []) -> str:
+    """
+    Rewrite user query to improve retrieval quality.
+    
+    Example:
+    User asks: "termination?"
+    Rewritten: "What are the termination conditions, notice periods,
+                penalties and cancellation clauses in this document?"
+    
+    This improves retrieval because:
+    - Short queries miss relevant chunks
+    - Rewritten queries match more document vocabulary
+    - Context from chat history improves follow-up questions
+    """
+    history_text = ""
+    for msg in chat_history[-4:]:
+        history_text += f"{msg.get('role','')}: {msg.get('content','')}\n"
+
+    prompt = f"""You are a query rewriting expert for a RAG system.
+Your job is to rewrite the user's question to improve document retrieval.
+
+Rules:
+- Expand short or vague queries into detailed ones
+- Include relevant synonyms and related terms
+- Use context from chat history for follow-up questions
+- Return ONLY the rewritten query — nothing else
+- Keep it under 100 words
+
+Chat History:
+{history_text}
+
+Original Question: {question}
+
+Rewritten Question:"""
+
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+        max_tokens=150
+    )
+    rewritten = response.choices[0].message.content.strip()
+    return rewritten
+
 def build_context(chunks: list[dict]) -> str:
     """Build context string from reranked chunks."""
     context = ""
@@ -34,38 +78,43 @@ def answer_question(
     doc_id: str = None
 ) -> dict:
     """
-    Full RAG pipeline:
-    1. Retrieve top 20 chunks from Pinecone
-    2. Rerank to top 5 using cross-encoder
-    3. Build prompt with context + history
-    4. Call Groq LLM
-    5. Return answer + sources
+    Full RAG pipeline with query rewriting:
+    1. Rewrite query for better retrieval
+    2. Retrieve top 20 chunks from Pinecone
+    3. Rerank to top 5 using cross-encoder
+    4. Build prompt with context + history
+    5. Call Groq LLM
+    6. Return answer + sources + rewritten query
     """
 
-    # Step 1: Retrieve
-    chunks = retrieve(query=question, doc_id=doc_id)
+    # Step 1: Rewrite query
+    rewritten_query = rewrite_query(question, chat_history)
+
+    # Step 2: Retrieve using REWRITTEN query
+    chunks = retrieve(query=rewritten_query, doc_id=doc_id)
 
     if not chunks:
         return {
-            "answer":  "No relevant documents found. Please upload documents first.",
-            "sources": []
+            "answer":          "No relevant documents found. Please upload documents first.",
+            "sources":         [],
+            "rewritten_query": rewritten_query
         }
 
-    # Step 2: Rerank
-    reranked_chunks = rerank(query=question, chunks=chunks)
+    # Step 3: Rerank
+    reranked_chunks = rerank(query=rewritten_query, chunks=chunks)
 
-    # Step 3: Build context
+    # Step 4: Build context
     context = build_context(reranked_chunks)
 
-    # Step 4: Build chat history string
+    # Step 5: Build chat history string
     history_text = ""
     for msg in chat_history[-6:]:
         role    = msg.get("role", "")
         content = msg.get("content", "")
         history_text += f"{role}: {content}\n"
 
-    # Step 5: Build prompt
-    system_prompt = """You are a helpful AI assistant that answers questions 
+    # Step 6: Build prompt
+    system_prompt = """You are a helpful AI assistant that answers questions
 based on the provided document context.
 
 Rules:
@@ -81,11 +130,11 @@ Rules:
 Chat History:
 {history_text}
 
-Question: {question}
+Original Question: {question}
 
 Answer:"""
 
-    # Step 6: Call Groq
+    # Step 7: Call Groq
     response = client.chat.completions.create(
         model=LLM_MODEL,
         messages=[
@@ -100,6 +149,7 @@ Answer:"""
     sources = build_sources(reranked_chunks)
 
     return {
-        "answer":  answer,
-        "sources": sources
+        "answer":          answer,
+        "sources":         sources,
+        "rewritten_query": rewritten_query
     }

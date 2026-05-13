@@ -21,8 +21,9 @@ class SourceItem(BaseModel):
     score:       float
 
 class ChatResponse(BaseModel):
-    answer:  str
-    sources: list[SourceItem]
+    answer:          str
+    sources:         list[SourceItem]
+    rewritten_query: str
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
@@ -44,7 +45,8 @@ async def chat(request: ChatRequest):
 
         return ChatResponse(
             answer=result["answer"],
-            sources=[SourceItem(**s) for s in result["sources"]]
+            sources=[SourceItem(**s) for s in result["sources"]],
+            rewritten_query=result["rewritten_query"]
         )
 
     except Exception as e:
