@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+pydantic
+langchain
+langchain-community
+langchain-groq
+langchain-pinecone
+langchain-text-splitters
+pinecone
+sentence-transformers
+pypdf
+langsmith
+streamlit
+requests
+groq
