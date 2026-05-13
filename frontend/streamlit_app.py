@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 
 API_BASE = "http://127.0.0.1:8003/api/v1"
 
@@ -67,6 +68,7 @@ if not st.session_state.doc_id:
     ### How it works
     - Upload any PDF document
     - Ask questions in natural language
+    - Query is automatically rewritten for better retrieval
     - Get answers with source citations
     - Powered by Pinecone + Groq + Reranking + Query Rewriting
     """)
@@ -96,7 +98,7 @@ else:
         })
 
         with st.chat_message("assistant"):
-            with st.spinner("Rewriting query → Retrieving → Reranking → Generating..."):
+            with st.spinner("Rewriting query → Retrieving → Reranking..."):
                 response = requests.post(
                     f"{API_BASE}/chat",
                     json={
@@ -110,28 +112,41 @@ else:
                     headers={"Content-Type": "application/json"}
                 )
 
-                if response.status_code == 200:
-                    data            = response.json()
-                    answer          = data["answer"]
-                    sources         = data["sources"]
-                    rewritten_query = data["rewritten_query"]
+            if response.status_code == 200:
+                data            = response.json()
+                answer          = data["answer"]
+                sources         = data["sources"]
+                rewritten_query = data["rewritten_query"]
 
-                    # Show rewritten query
-                    st.caption(f"🔄 Query rewritten to: *{rewritten_query}*")
-                    st.write(answer)
+                # Show rewritten query
+                st.caption(f"🔄 Query rewritten to: *{rewritten_query}*")
 
-                    with st.expander("📚 Sources"):
-                        for src in sources:
-                            st.markdown(
-                                f"**{src['filename']}** — "
-                                f"Chunk {src['chunk_index']} — "
-                                f"Score: {src['score']}"
-                            )
+                # Simulate streaming — word by word display
+                words       = answer.split()
+                placeholder = st.empty()
+                displayed   = ""
 
-                    st.session_state.chat_history.append({
-                        "role":    "assistant",
-                        "content": answer,
-                        "sources": sources
-                    })
-                else:
-                    st.error("Error getting answer. Try again.")
+                for word in words:
+                    displayed += word + " "
+                    placeholder.markdown(displayed + "▌")
+                    time.sleep(0.03)
+
+                # Final answer without cursor
+                placeholder.markdown(displayed.strip())
+
+                # Sources
+                with st.expander("📚 Sources"):
+                    for src in sources:
+                        st.markdown(
+                            f"**{src['filename']}** — "
+                            f"Chunk {src['chunk_index']} — "
+                            f"Score: {src['score']}"
+                        )
+
+                st.session_state.chat_history.append({
+                    "role":    "assistant",
+                    "content": answer,
+                    "sources": sources
+                })
+            else:
+                st.error("Error getting answer. Try again.")
