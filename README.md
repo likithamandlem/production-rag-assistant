@@ -9,14 +9,15 @@ AI retrieval, reranking, and LLM generation.
 # 🚀 Features
 
 - 📄 **PDF Upload & Indexing** — documents stored in Pinecone cloud vector DB
+- 🔄 **Query Rewriting** — automatically expands short queries for better retrieval
 - 🔍 **Semantic Retrieval** — BAAI/bge-small-en-v1.5 embeddings for accurate search
 - 🎯 **Cross-encoder Reranking** — retrieves top 20, reranks to best 5
+- ⚡ **Streaming Responses** — real-time word-by-word answer generation
 - 💬 **Conversational RAG** — chat with memory and context
 - 📚 **Source Citations** — every answer cites exact source chunks
 - 🗑️ **Document Management** — upload and delete documents
 - 🔭 **LangSmith Tracing** — full LLM observability
 - 🐳 **Dockerized** — production-ready deployment
-- 🔄 **Query Rewriting** — automatically expands short queries for better retrieval
 
 ---
 
@@ -173,12 +174,13 @@ Topic 3 (Source 3)
 
 | Step | Detail |
 |---|---|
-| Query Rewriting | LLM rewrites short queries into detailed retrieval-optimized queries |
+| Query Rewriting | LLM expands short queries into detailed retrieval-optimized queries |
 | Retrieval | Top 20 chunks from Pinecone using BAAI embeddings |
 | Reranking | Cross-encoder scores all 20, returns best 5 |
 | Context | Best 5 chunks sent to LLM |
 | Generation | Llama 3.3 70B generates grounded answer |
-| Citations | Every answer references source chunks |
+| Streaming | Answer streamed word by word to UI |
+| Citations | Every answer references source chunks with scores |
 ---
 
 # 🧩 Challenges Faced
